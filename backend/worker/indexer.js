@@ -46,6 +46,7 @@ async function retryWithBackoff(fn, maxRetries = MAX_RETRIES) {
 
 const EVENT_TYPES = {
   Create: "create",
+  CrtEvent: "created",
   Reserv: "reserve",
   Submit: "submit",
   Releas: "release",
