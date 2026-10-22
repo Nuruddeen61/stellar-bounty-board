@@ -3003,6 +3003,59 @@ fn test_release_bounty_boundary_double_release_fails() {
     let token_admin = soroban_sdk::token::StellarAssetClient::new(&env, &token_id);
     token_admin.mint(&maintainer, &10_000);
 
+// ─── create_bounty structured event (CrtEvent) ──────────────────────────
+
+#[test]
+fn test_create_bounty_emits_structured_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, maintainer, _contributor, token_id, _fee_recipient, _arbiter) =
+        setup_test(&env);
+    let token_admin = soroban_sdk::token::StellarAssetClient::new(&env, &token_id);
+    token_admin.mint(&maintainer, &1000);
+
+    let deadline = env.ledger().timestamp() + 1000;
+    let bounty_id = client.create_bounty(
+        &maintainer,
+        &token_id,
+        &500,
+        &String::from_str(&env, "repo"),
+        &7,
+        &String::from_str(&env, "title"),
+        &deadline,
+        &250u32,
+        &Some(3600u64),
+    );
+
+    // The structured event is the last one emitted by this contract.
+    let events = env.events().all().filter_by_contract(&client.address);
+    let event = events.events().last().unwrap();
+    let soroban_sdk::xdr::ContractEventBody::V0(body) = &event.body;
+    let t0 = soroban_sdk::Symbol::from_val(&env, &body.topics[0]);
+    let t1 = soroban_sdk::Symbol::from_val(&env, &body.topics[1]);
+    assert_eq!(t0, symbol_short!("Bounty"));
+    assert_eq!(t1, symbol_short!("CrtEvent"));
+
+    let payload = BountyCreatedEvent::from_val(&env, &body.data);
+    assert_eq!(
+        payload,
+        BountyCreatedEvent {
+            bounty_id,
+            maintainer,
+            token: token_id,
+            amount: 500,
+            repo: String::from_str(&env, "repo"),
+            issue_number: 7,
+            title: String::from_str(&env, "title"),
+            deadline,
+            protocol_fee_bps: 250,
+            dispute_window_override: Some(3600),
+            created_at: env.ledger().timestamp(),
+        }
+    );
+}
+    
     let deadline = env.ledger().timestamp() + 1000;
     let bounty_id = client.create_bounty(
         &maintainer,
