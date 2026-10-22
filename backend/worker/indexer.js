@@ -116,6 +116,20 @@ export function normalizeEvent(event) {
     normalized.released = true;
   }
 
+ // `created` is the structured create_bounty event (BountyCreatedEvent).
+  // The payload carries everything the worker needs, so no follow-up
+  // contract read is required.
+  if (type === "created") {
+    normalized.token = addressString(data.token);
+    normalized.repo = data.repo;
+    normalized.issueNumber = jsonSafe(data.issue_number);
+    normalized.title = data.title;
+    normalized.deadline = jsonSafe(data.deadline);
+    normalized.protocolFeeBps = jsonSafe(data.protocol_fee_bps);
+    normalized.disputeWindowOverride = jsonSafe(data.dispute_window_override ?? null);
+    normalized.createdAt = jsonSafe(data.created_at);
+  }
+
   return normalized;
 }
 
